@@ -1,24 +1,42 @@
 'use client'
+
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useStore } from '@/lib/store'
 
-function getBreadcrumbs(pathname: string): string[] {
-  if (pathname === '/' || pathname === '') return ['Dashboard']
-  const segments = (pathname || '').split('/').filter(Boolean)
-  const crumbs: string[] = ['Dashboard']
-  segments.forEach((seg) => {
-    if (seg === 'projects') crumbs.push('Projects')
-    else if (seg === 'new') crumbs.push('New Project')
-    else if (seg === 'agents') crumbs.push('Agents')
-    else if (seg === 'fleet') crumbs.push('Fleet Command')
-    else if (seg === 'autonomous') crumbs.push('Autonomous Ops')
-    else crumbs.push(seg.length > 12 ? seg.slice(0,8)+'…' : seg)
-  })
-  return crumbs
-}
 export default function AppTopbar() {
-  const pathname = usePathname()
-  const crumbs = getBreadcrumbs(pathname)
+  const pathname = usePathname() || ''
+  const { getProject } = useStore()
+
+  const projectIdMatch = pathname.match(/\/projects\/([^\/]+)/)
+  let projectName: string | null = null
+  if (projectIdMatch && projectIdMatch[1] && projectIdMatch[1] !== 'new') {
+    const id = projectIdMatch[1]
+    const proj = getProject(id)
+    if (proj) projectName = proj.name
+  }
+
+  const crumbs: string[] = ['Dashboard']
+
+  const segs = pathname.split('/').filter(Boolean)
+  if (segs[0] === 'projects' && segs[1] && segs[1] !== 'new') {
+    if (projectName) {
+      crumbs.push(projectName)
+    } else {
+      const raw = segs[1]
+      crumbs.push(raw.length > 12 ? raw.slice(0, 8) + '…' : raw)
+    }
+  } else if (segs[0] === 'projects' && segs[1] === 'new') {
+    crumbs.push('New Project')
+  } else if (segs[0] === 'autonomous') {
+    crumbs.push('Autonomous Ops')
+  } else if (segs[0] === 'fleet') {
+    crumbs.push('Fleet Command')
+  } else if (segs.length > 0 && segs[0] !== 'projects') {
+    const s0 = segs[0]
+    if (s0 && !crumbs.includes(s0)) crumbs.push(s0.charAt(0).toUpperCase() + s0.slice(1))
+  }
+
   return (
     <header className="h-[52px] shrink-0 border-b border-[#E5E7EB] bg-white z-10">
       <div className="flex h-full items-center px-8">
